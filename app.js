@@ -276,6 +276,99 @@ function addEmployee() {
    })   
 };
 
+function viewDepartments() {
+    connection.query("SELECT department.id, department.name, SUM(role.salary) AS utilized_budget FROM employee LEFT JOIN role on employee.role_id = role.id LEFT JOIN department on role.department_id = department.id GROUP BY department.id, department.name;", function(err, results) {
+        if (err) throw err;
+        console.table(results);
+        start(); 
+    });   
+};
 
+function viewRoles() {
+    connection.query("SELECT role.id, role.title, department.name AS department, role.salary FROM role LEFT JOIN department on role.department_id = department.id;", function(err, results) {
+        if (err) throw err;
+        console.table(results);
+        start(); 
+    });  
+};
 
+function viewEmployees() {
+    connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, role.salary FROM employees_DB.employee LEFT JOIN role on role.id = employee.role_id", function(err, results) {
+        if (err) throw err;
+        console.table(results);
+        start(); 
+    });
+};
 
+function updateRole() {
+    
+    let employeeRole = [];
+    let employees = [];
+
+   promisemysql.createConnection(connectProp)
+   .then((dbconnection) => {
+       return Promise.all([
+
+            dbconnection.query("SELECT * FROM role"),
+
+            dbconnection.query("SELECT employee.id, concat(employee.first_name, ' ' ,  employee.last_name) AS fullName FROM employee ORDER BY fullName ASC")
+
+       ]);
+   })
+   .then(([role,name]) => {
+
+        for (var i = 0; i < role.length; i++) {
+            employeeRole.push(role[i].title);
+        }
+
+        for (var i = 0; i < name.length; i++) {
+            employees.push(name[i].fullName)
+        }
+
+        return Promise.all([role,name]);
+
+   })
+   .then(([role,name]) => {
+
+        inquirer.prompt([
+            {
+                type: "list",
+                name: "employeeName",
+                message: "Employee Name: ",
+                choices: employees 
+            },  
+            {
+                type: "list",
+                name: "currentRole",
+                message: "New Role: ",
+                choices: employeeRole
+            } 
+        ]).then(answers=> {
+
+            let roleID;
+
+            let employeeID;
+
+            for (var i = 0; i < role.length; i++) {
+                if (answers.currentRole == role[i].title) {
+                    roleID = role[i].id;
+                }
+            }
+
+            for (var i = 0; i < name.length; i++) {
+                if (answers.employeeName == name[i].fullName) {
+                    employeeID = name[i].id;
+                }
+            }
+
+            connection.query(
+                `UPDATE employee SET role_id = ${roleID} WHERE id = ${employeeID}`,
+                function(err) {
+                if (err) throw err;
+                console.log("Employee role changed successfully");
+                start();
+                }
+            );
+        });
+   })
+};

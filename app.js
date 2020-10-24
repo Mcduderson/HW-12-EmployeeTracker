@@ -149,7 +149,6 @@ function addRole(){
         .then(answers=>{
             let departmentID;
 
-                // Assign a department ID based on the user input choice
             for (var i = 0; i < department.length; i++) {
                 if (answers.department == department[i].name) {
                     departmentID = department[i].id;
@@ -173,5 +172,110 @@ function addRole(){
     })
     
 }
+
+function addEmployee() { 
+    let employeeRole = [];
+    let employees = [];
+
+   promisemysql.createConnection(connectProp)
+   .then((dbconnection) => {
+       return Promise.all([
+            dbconnection.query("SELECT * FROM role"),
+            dbconnection.query("SELECT employee.id, concat(employee.first_name, ' ' ,  employee.last_name) AS fullName FROM employee ORDER BY fullName ASC")
+       ]);
+   })
+   .then(([role,name]) => {
+
+        for (var i = 0; i < role.length; i++) {
+            employeeRole.push(role[i].title);
+        }
+        
+        for (var i = 0; i < name.length; i++) {
+            employees.push(name[i].fullName)
+        }
+
+        return Promise.all([role,name]);
+
+   })
+   .then(([role,name]) => {
+        
+        employees.push('null')
+
+        inquirer.prompt([
+            {
+                type: "input",
+                name: "firstname",
+                message: "First Name: ",
+                validate: function(input){
+                    if (input === ""){
+                        console.log("First Name Required");
+                        return false;
+                    }
+                    else{
+                        return true;
+                    }
+                }
+            },
+            {
+                type: "input",
+                name: "lastname",
+                message: "Last Name: ",
+                validate: function(input){
+                    if (input === ""){
+                        console.log("Last Name Required");
+                        return false;
+                    }
+                    else{
+                        return true;
+                    }
+                }
+            },
+            {
+                type: "list",
+                name: "currentRole",
+                message: "Role within the company: ",
+                choices: employeeRole
+            },
+            {
+                type: "list",
+                name: "manager",
+                message: "Name of their manager: ",
+                choices: employees 
+            }   
+        ]).then(answers=> {
+            let roleID;
+            let managerID = null;
+
+            for (var i = 0; i < role.length; i++) {
+                if (answers.currentRole == role[i].title) {
+                    roleID = role[i].id;
+                }
+            }
+
+            for (var i = 0; i < name.length; i++) {
+                if (answers.manager == name[i].fullName) {
+                    managerID = name[i].id;
+                }
+            }
+                
+            connection.query(
+                "INSERT INTO employee SET ?",
+                {
+                first_name: answers.firstname,
+                last_name: answers.lastname,
+                role_id: roleID,
+                manager_id: managerID
+                },
+                function(err) {
+                if (err) throw err;
+                console.log("Employee added successfully");
+                start();
+                }
+            );
+        });
+   })   
+};
+
+
 
 

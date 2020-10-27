@@ -1,10 +1,10 @@
-// 
+// requires
 const inquirer = require("inquirer");
-const mysql = require("mysql");
+//const mysql = require("mysql");
 const cTable = require('console.table');
 const db = require('./connection');
 
-// 
+// Main menu and starts off app.
 function start() {
     inquirer.prompt({
         name: "mainmenu",
@@ -46,7 +46,7 @@ function start() {
     });
 }
 
-// 
+// Options to make changes to employees
 function editEmployeeOptions() {
     inquirer.prompt({
         name: "editChoice",
@@ -119,6 +119,7 @@ function editDepartmentOptions() {
         choices: [
             "Add A New Department",
             "Remove A Department",
+            "See Utilized Budget",
             "Return To Main Menu"
         ]
     }).then(responses => {
@@ -129,6 +130,9 @@ function editDepartmentOptions() {
             case "Remove A Department":
                 removeDepartment();
                 break;
+            case "See Utilized Budget":
+                viewDepartmentBudget();
+                break;
             case "Return To Main Menu":
                 start();
                 break;
@@ -136,7 +140,7 @@ function editDepartmentOptions() {
     })
 };
 
-// 
+// function to validate string inputs
 async function confirmStringInput(input) {
     if ((input.trim() != "") && (input.trim().length <= 30)) {
         return true;
@@ -144,7 +148,7 @@ async function confirmStringInput(input) {
     return "Invalid input. Please limit your input to 30 characters or less.";
 };
 
-// 
+// function to validate number inputs
 async function confirmNumberInput(input) {
     if(isNaN(input)===false){
         return true;
@@ -152,28 +156,37 @@ async function confirmNumberInput(input) {
     return "Please enter a Salary.";
 };
 
-// 
+// See all employees
 async function viewEmployees() {
     const view = await db.query('SELECT e.id, e.first_name, e.last_name, title, salary, name AS Department, CONCAT(m.first_name, " ", m.last_name) AS Manager FROM employee e LEFT JOIN employee m ON e.manager_id = m.id INNER JOIN role r ON e.role_id = r.id INNER JOIN department d ON r.department_id = d.id');
     console.table(view);
     start();
 };
 
-// 
+// See all Roles
 async function viewRoles() {
     const view = await db.query('SELECT r.id, title, salary, name AS department FROM role r LEFT JOIN department d ON department_id = d.id');
     console.table(view);
     start();
 };
 
-// 
-async function viewDepartments() {
+// See untilized budget
+async function viewDepartmentBudget() {
     const view = await db.query("SELECT department.id, department.name, SUM(role.salary) AS utilized_budget FROM employee LEFT JOIN role on employee.role_id = role.id LEFT JOIN department on role.department_id = department.id GROUP BY department.id, department.name");
     console.table(view);
     start();
 };
 
-// 
+// See all departments
+async function viewDepartments() {
+    await db.query('SELECT id, name AS department FROM department', (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        start();
+    })
+};
+
+// add employee
 async function addEmployee() { 
     let positions = await db.query('SELECT id, title FROM role');
     let managers = await db.query('SELECT id, CONCAT(first_name, " ", last_name) AS Manager FROM employee');
@@ -213,7 +226,7 @@ async function addEmployee() {
     })
 };
 
-// 
+// Update employee role
 async function updateEmployeeRole() {
     let employees = await db.query('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee');
     employees.push({ id: null, name: "Cancel" });
@@ -306,7 +319,7 @@ async function removeEmployee() {
     })
 };
 
-// 
+// adds a Role to the database
 async function addRole(){
     let departments = await db.query('SELECT id, name FROM department');
     
@@ -405,7 +418,7 @@ async function removeRole() {
     })
 };
 
-// 
+// adds a department to the database
 async function addDepartment(){
     inquirer.prompt([
         {

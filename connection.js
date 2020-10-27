@@ -1,7 +1,7 @@
-//
+//requiring mysql
 const mysql = require("mysql");
 
-//
+//created a constructor function to house connection and the mehods to be used.
 class Database {
     constructor(config) {
         this.connection = mysql.createConnection(config);
@@ -28,7 +28,7 @@ class Database {
     }
 }
 
-//
+//created the db as a new class to be used elsewhere.
 const db = new Database({
     host: "localhost",
     port: 3306,
@@ -37,4 +37,5 @@ const db = new Database({
     database: "employees_DB"
 });
 
+// exporting the db for use
 module.exports = db;
